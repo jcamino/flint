@@ -46,25 +46,31 @@ WSL removes that friction.)
 
 ## Per-PR workflow
 
-1. **Branch fresh from upstream main** (avoids the perpetual rebase conflicts):
+1. **Branch fresh from upstream main** (avoids the perpetual rebase conflicts).
+Placeholders are written `$N` / `$RULE` / `$PLUGIN` because prettier mangles angle-bracket placeholders in this file:
    ```bash
    git fetch origin
-   git checkout -b revive/ < n > - < rule > origin/main
+   git checkout -b "revive/$N-$RULE" origin/main
    ```
-2. **Pull only the PR's NEW files** (rule + test + docs) — _not_ `plugin.ts`/`data.json`, which always conflict and which you re-apply by hand:
+2. **Pull only the PR's NEW files** (rule + test + docs) — _not_ `plugin.ts`/`data.json`, which always conflict and which you re-apply by hand.
+If upstream still has the PR's head branch (`gh pr view $N --json headRefName`), the simplest form is:
    ```bash
-   git fetch origin pull/ < n > /head
-   git checkout FETCH_HEAD -- \
-   	packages/ \
-   	packages/ \
-   	packages/site/src/content/docs/rules/ < plugin > /src/rules/ < rule > .ts < plugin > /src/rules/ < rule > .test.ts < plugin > / < rule > .mdx
+   git fetch origin "$HEAD_BRANCH"
+   git checkout "origin/$HEAD_BRANCH" -- \
+   	"packages/$PLUGIN/src/rules/$RULE.ts" \
+   	"packages/$PLUGIN/src/rules/$RULE.test.ts" \
+   	"packages/site/src/content/docs/rules/$PLUGIN/$RULE.mdx"
+   git restore --staged "packages/$PLUGIN/src/rules/$RULE.ts" \
+   	"packages/$PLUGIN/src/rules/$RULE.test.ts" \
+   	"packages/site/src/content/docs/rules/$PLUGIN/$RULE.mdx"
    ```
+   (Otherwise `git fetch origin "pull/$N/head"` and checkout from `FETCH_HEAD`.)
    **Fallback** if this errors `unable to read sha1 file` (blobless partial clone):
    ```bash
-   SHA=$(gh pr view <n> --repo flint-fyi/flint --json headRefOid --jq .headRefOid)
-   for f in <the 3 paths above>; do
-     gh api "repos/flint-fyi/flint/contents/$f?ref=$SHA" \
-       -H "Accept: application/vnd.github.raw" > "$f"
+   SHA=$(gh pr view "$N" --repo flint-fyi/flint --json headRefOid --jq .headRefOid)
+   for f in "${PATHS[@]}"; do # the 3 paths above
+   	gh api "repos/flint-fyi/flint/contents/$f?ref=$SHA" \
+   		-H "Accept: application/vnd.github.raw" > "$f"
    done
    ```
 3. **Port the rule** to the current API — see _Migration recipe_.
