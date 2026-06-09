@@ -160,48 +160,60 @@ Let husky/lint-staged run (it runs prettier + `validate-changesets.ts`).
 
 ## Open the draft PR
 
-After the branch is on `fork`, open a **draft** PR against upstream (the head lives on the fork; gh references it as `jcamino:<branch>`):
+After the branch is on `fork`, open a **draft** PR against upstream (the head lives on the fork; gh references it as `jcamino:BRANCH`).
+Placeholders are written `$N` / `$RULE` / `$PLUGIN` because prettier mangles angle-bracket placeholders in this file:
 
 ```bash
 gh pr create --repo flint-fyi/flint --base main \
-	--head jcamino:revive/ \
-	"feat(<plugin>): implement <rule> rule" \
-	--body-file /tmp/pr- --draft < n > - < rule > --title < n > -body.md
+	--head "jcamino:revive/$N-$RULE" \
+	--title "feat($PLUGIN): implement $RULE rule" \
+	--body-file "/tmp/pr-$N-body.md" --draft
 ```
 
-Body template (write to a temp file to avoid shell-escaping; fill the bracketed bits):
+**The body MUST start with the repo's PR-template checklist** — the `octoguide` CI gate (strict config; applies to CONTRIBUTOR-association authors) fails otherwise:
+
+- `pr-linked-issue` requires a literal **`fixes #NNN`** closing link (an "Addresses #NNN" mention does NOT count).
+Auto-closing the tracking issue on merge is correct — the revival implements it.
+Find it: `gh pr view $N --repo flint-fyi/flint --json body --jq .body | grep -iE "(fixes|closes) #"`.
+- `pr-task-completion` requires every template task `[x]`-checked.
+For a task that isn't honestly satisfiable, use OctoGuide's sanctioned N/A form — check it, strike the task text, append the reason: `- [x] ~~task text~~ explanation`.
+The revival PRs use this for the `status: accepting prs` item, since the backlog issues are labeled `status: blocked`.
+- OctoGuide re-runs on PR **body edits** (`pull_request_target: edited`), not on pushes — to clear a stale failure after fixing the body, make any small body edit.
+
+Body template (write to a temp file to avoid shell-escaping):
 
 ```markdown
-> **Draft revival** — opening for maintainer review, not asserting merge-readiness.
+## PR Checklist
+
+- [x] Addresses an existing open issue: fixes #TRACKING_ISSUE
+- [x] ~~That issue was marked as [`status: accepting prs`](https://github.com/flint-fyi/flint/issues?q=is%3Aopen+is%3Aissue+label%3A%22status%3A+accepting+prs%22)~~ The issue is labeled `status: blocked` (its original draft, #N, stalled on the legacy rule API) — this PR is the revival of that draft, opened as a draft for maintainer review
+- [x] Steps in [CONTRIBUTING.md](https://github.com/flint-fyi/flint/blob/main/.github/CONTRIBUTING.md) were taken
 
 ## Overview
 
-Revives #<n> (`<rule>`), which stalled when the rule-authoring API migrated underneath it.
+> **Draft revival** — opening for maintainer review, not asserting merge-readiness.
+
+Revives #N (`RULE`), which stalled when the rule-authoring API migrated underneath it.
 This branch ports it to the current `ruleCreator.createRule(language, …)` + visitor-`services` API and restores the full rule set.
 
-<one sentence on what the rule reports + its equivalents in other linters>.
-
-Addresses #<tracking-issue>.
-
-<!-- the issue the original PR's "Fixes …" pointed at; omit if none -->
+ONE SENTENCE: what the rule reports + its equivalents in other linters.
 
 ### Files
 
-- the 3 created files + plugin.ts / data.json / .changeset
+- the 3 created files + plugin.ts / data.json / .changeset (one bullet each)
 
 ### Local gates
 
-`eslint` · `tsc -b packages/<plugin>` · `vitest` (rule test) · `prettier` — all pass locally.
+`eslint --max-warnings 0` · `tsc -b packages/PLUGIN` · `vitest` (rule test) · `comparisons/data.test.ts` · `prettier --check` — all pass locally.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 ```
 
 Notes:
 
-- Use **`Addresses #<issue>`**, not `Fixes`/`Closes` — the original draft PR is usually still open against the same issue; don't auto-close or imply you're superseding it.
-Let the maintainer decide.
-- If the PR was revived only to green-CI with an **open design question** (see Constraints), call that out explicitly in the body under an `### Open question` heading so the maintainer sees it before reviewing.
-- Find the tracking issue from the original PR: `gh pr view <n> --repo flint-fyi/flint --json body --jq .body | grep -i 'fixes\|closes'`.
+- If the PR was revived only to green-CI with an **open design question** (see Constraints), call it out under an `## Open questions` heading so maintainers see it before reviewing (see #2946 for the shape).
+- Mention any porting change beyond the mechanical recipe (e.g. a lint-driven rewrite) explicitly — reviewers should not have to diff against the original to find it.
+- `gh pr edit` fails on this repo with a Projects-classic GraphQL error; edit bodies via REST instead: `gh api "repos/flint-fyi/flint/pulls/$N" -X PATCH -F body=@"/tmp/pr-$N-body.md"`.
 
 ## Delegating to a subagent
 
@@ -213,10 +225,10 @@ Then re-verify the gates yourself before committing.
 ✅ **477** variableBlockScopeUsage · ts → draft PR [#2944](https://github.com/flint-fyi/flint/pull/2944)
 ✅ **479** unusedLabels · ts → draft PR [#2945](https://github.com/flint-fyi/flint/pull/2945)
 ✅ **1357** awaitThenable · ts → draft PR [#2946](https://github.com/flint-fyi/flint/pull/2946) (open design Qs — naming, `any`/`unknown` handling, aggregators, fixer — flagged in the PR body, behavior preserved)
+✅ **1363** caughtErrorCauses · ts → draft PR [#2948](https://github.com/flint-fyi/flint/pull/2948) (its #400 scope-manager blocker has LIFTED — #400 closed 2026-06-06; lenient behavior preserved, scope-based tightening offered as follow-up)
 
 | PR   | rule                               | plugin          | note                                                                                                         |
 | ---- | ---------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------ |
-| 1363 | caughtErrorCauses                  | ts              | needs API migration                                                                                          |
 | 1502 | floatingPromises                   | ts              | most mechanical; heaviest import remap; ~1 `console` fixture line; "blocked" likely just a missing changeset |
 | 1504 | functionDefinitionScopeConsistency | ts              | needs migration                                                                                              |
 | 1505 | functionTypeDeclarations           | ts              | needs migration                                                                                              |
