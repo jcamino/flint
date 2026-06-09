@@ -14,15 +14,15 @@ description: >-
 
 `flint-fyi/flint` has ~25 stale **draft PRs that each implement one lint rule**.
 They froze (≈Jan–Feb 2026) not because they were wrong, but because the **rule-authoring API migrated underneath them**.
-Reviving one = port its rule to the current API, restore tests/docs/comparisons/changeset, pass the gates, and push a branch to a fork.
-**No upstream PRs.**
+Reviving one = port its rule to the current API, restore tests/docs/comparisons/changeset, pass the gates, push a branch to the fork, and open a **draft PR** against upstream `flint-fyi/flint`.
 
 This recipe is battle-tested: `#477 variableBlockScopeUsage` and `#479 unusedLabels` were revived and pushed with it (see git log on `jcamino/flint`).
 
 ## Constraints (the rules of this effort)
 
-- Push each revived rule as its own branch **`revive/<n>-<rule>`** to the **`fork`** remote (`github.com/jcamino/flint`).
-**Do NOT open upstream PRs.**
+- Push each revived rule as its own branch **`revive/<n>-<rule>`** to the **`fork`** remote (`github.com/jcamino/flint`), then open a **draft PR** against upstream `flint-fyi/flint` (base `main`, head `jcamino:revive/<n>-<rule>`).
+See _Open the draft PR_.
+PRs are opened as **draft** deliberately — they're for maintainer review, not an assertion of merge-readiness.
 - Work **oldest PR number first** unless told otherwise.
 - Don't guess on semantics: if a PR is gated on a maintainer **design decision** (not a code gap), revive it to green-CI and **flag the open question** rather than inventing behavior.
 
@@ -72,6 +72,7 @@ WSL removes that friction.)
 4. **Re-apply the hot files + changeset** — see _Merge-ready checklist_.
 5. **Run every gate** (see _Gates_) until green.
 6. **Commit + push to fork** (see _Commit & push_).
+7. **Open a draft PR** against upstream `flint-fyi/flint` (see _Open the draft PR_).
 
 ## Migration recipe (OLD → NEW rule API)
 
@@ -156,7 +157,50 @@ git push -u fork revive/<n>-<rule>
 ```
 
 Let husky/lint-staged run (it runs prettier + `validate-changesets.ts`).
-**No upstream PR.**
+
+## Open the draft PR
+
+After the branch is on `fork`, open a **draft** PR against upstream (the head lives on the fork; gh references it as `jcamino:<branch>`):
+
+```bash
+gh pr create --repo flint-fyi/flint --base main \
+	--head jcamino:revive/ \
+	"feat(<plugin>): implement <rule> rule" \
+	--body-file /tmp/pr- --draft < n > - < rule > --title < n > -body.md
+```
+
+Body template (write to a temp file to avoid shell-escaping; fill the bracketed bits):
+
+```markdown
+> **Draft revival** — opening for maintainer review, not asserting merge-readiness.
+
+## Overview
+
+Revives #<n> (`<rule>`), which stalled when the rule-authoring API migrated underneath it.
+This branch ports it to the current `ruleCreator.createRule(language, …)` + visitor-`services` API and restores the full rule set.
+
+<one sentence on what the rule reports + its equivalents in other linters>.
+
+Addresses #<tracking-issue>.
+<!-- the issue the original PR's "Fixes …" pointed at; omit if none -->
+
+### Files
+
+- the 3 created files + plugin.ts / data.json / .changeset
+
+### Local gates
+
+`eslint` · `tsc -b packages/<plugin>` · `vitest` (rule test) · `prettier` — all pass locally.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+```
+
+Notes:
+
+- Use **`Addresses #<issue>`**, not `Fixes`/`Closes` — the original draft PR is usually still open against the same issue; don't auto-close or imply you're superseding it.
+Let the maintainer decide.
+- If the PR was revived only to green-CI with an **open design question** (see Constraints), call that out explicitly in the body under an `### Open question` heading so the maintainer sees it before reviewing.
+- Find the tracking issue from the original PR: `gh pr view <n> --repo flint-fyi/flint --json body --jq .body | grep -i 'fixes\|closes'`.
 
 ## Delegating to a subagent
 
@@ -165,8 +209,8 @@ Then re-verify the gates yourself before committing.
 
 ## The backlog (oldest-first; ✅ = done)
 
-✅ **477** variableBlockScopeUsage · ts
-✅ **479** unusedLabels · ts
+✅ **477** variableBlockScopeUsage · ts → draft PR [#2944](https://github.com/flint-fyi/flint/pull/2944)
+✅ **479** unusedLabels · ts → draft PR [#2945](https://github.com/flint-fyi/flint/pull/2945)
 
 | PR   | rule                               | plugin          | note                                                                                                                                                           |
 | ---- | ---------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
