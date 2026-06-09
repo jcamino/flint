@@ -238,32 +238,32 @@ Then re-verify the gates yourself before committing.
 ✅ **1357** awaitThenable · ts → draft PR [#2946](https://github.com/flint-fyi/flint/pull/2946) (open design Qs — naming, `any`/`unknown` handling, aggregators, fixer — flagged in the PR body, behavior preserved)
 ✅ **1363** caughtErrorCauses · ts → draft PR [#2948](https://github.com/flint-fyi/flint/pull/2948) (its #400 scope-manager blocker has LIFTED — #400 closed 2026-06-06; lenient behavior preserved, scope-based tightening offered as follow-up)
 ✅ **1502** floatingPromises · ts → draft PR [#2949](https://github.com/flint-fyi/flint/pull/2949) (Kirk’s design feedback — drop `.catch()`/`void` silencing, sequence-expression gap, `getNumberIndexType` — flagged in the PR body, behavior preserved)
+✅ **1504** functionDefinitionScopeConsistency · ts → draft PR [#2950](https://github.com/flint-fyi/flint/pull/2950) (#400 blocker lifted; hand-rolled scope walk preserved, ScopeManager rewrite offered as follow-up)
 
-| PR   | rule                               | plugin          | note                                                                         |
-| ---- | ---------------------------------- | --------------- | ---------------------------------------------------------------------------- |
-| 1504 | functionDefinitionScopeConsistency | ts              | needs migration                                                              |
-| 1505 | functionTypeDeclarations           | ts              | needs migration                                                              |
-| 1587 | importAssignments                  | ts              | needs migration                                                              |
-| 1589 | importSelf                         | ts              | **blocked on #2791** (ProjectService) — verify; likely skip                  |
-| 1710 | irregularWhitespace                | **yaml**        | **blocked on #1110**; different language pkg                                 |
-| 1722 | unpublishedImports                 | **node**        | green CI                                                                     |
-| 1742 | unsupportedNodeAPIs                | **plugin-node** | large                                                                        |
-| 1745 | constVariables                     | ts              | green CI, small — easy win                                                   |
-| 1753 | methodSignatureStyles              | ts              | needs migration                                                              |
-| 1770 | invalidThis                        | ts              | green CI                                                                     |
-| 1793 | nonNullAssertions                  | ts              | needs migration                                                              |
-| 1903 | parameterPropertyAssignment        | ts              | needs migration                                                              |
-| 2109 | setHasExistenceChecks              | ts              | needs migration                                                              |
-| 2112 | shadows                            | ts              | needs migration                                                              |
-| 2116 | strictBooleanExpressions           | ts              | **already new API** — only rebase conflicts + a maintainer scope/naming call |
-| 2123 | templateExpressionValues           | ts              | needs migration                                                              |
-| 2133 | typeConstituentDuplicates          | ts              | small                                                                        |
-| 2134 | typeExports                        | ts              | green CI, small — easy win                                                   |
-| 2136 | unboundMethods                     | ts              | needs migration                                                              |
-| 2138 | unifiedSignatures                  | ts              | large                                                                        |
-| 2249 | unnecessaryUndefinedDefaults       | ts (copilot)    | **gated on naming #2802** (`unnecessary*`)                                   |
-| 2251 | unnecessaryTemplateExpressions     | ts (copilot)    | naming #2802; 5 failing jobs                                                 |
-| 2259 | unnecessaryLogicalComparisons      | ts (copilot)    | naming #2802                                                                 |
+| PR   | rule                           | plugin          | note                                                                         |
+| ---- | ------------------------------ | --------------- | ---------------------------------------------------------------------------- |
+| 1505 | functionTypeDeclarations       | ts              | needs migration                                                              |
+| 1587 | importAssignments              | ts              | needs migration                                                              |
+| 1589 | importSelf                     | ts              | **blocked on #2791** (ProjectService) — verify; likely skip                  |
+| 1710 | irregularWhitespace            | **yaml**        | **blocked on #1110**; different language pkg                                 |
+| 1722 | unpublishedImports             | **node**        | green CI                                                                     |
+| 1742 | unsupportedNodeAPIs            | **plugin-node** | large                                                                        |
+| 1745 | constVariables                 | ts              | green CI, small — easy win                                                   |
+| 1753 | methodSignatureStyles          | ts              | needs migration                                                              |
+| 1770 | invalidThis                    | ts              | green CI                                                                     |
+| 1793 | nonNullAssertions              | ts              | needs migration                                                              |
+| 1903 | parameterPropertyAssignment    | ts              | needs migration                                                              |
+| 2109 | setHasExistenceChecks          | ts              | needs migration                                                              |
+| 2112 | shadows                        | ts              | needs migration                                                              |
+| 2116 | strictBooleanExpressions       | ts              | **already new API** — only rebase conflicts + a maintainer scope/naming call |
+| 2123 | templateExpressionValues       | ts              | needs migration                                                              |
+| 2133 | typeConstituentDuplicates      | ts              | small                                                                        |
+| 2134 | typeExports                    | ts              | green CI, small — easy win                                                   |
+| 2136 | unboundMethods                 | ts              | needs migration                                                              |
+| 2138 | unifiedSignatures              | ts              | large                                                                        |
+| 2249 | unnecessaryUndefinedDefaults   | ts (copilot)    | **gated on naming #2802** (`unnecessary*`)                                   |
+| 2251 | unnecessaryTemplateExpressions | ts (copilot)    | naming #2802; 5 failing jobs                                                 |
+| 2259 | unnecessaryLogicalComparisons  | ts (copilot)    | naming #2802                                                                 |
 
 **Skip / flag-for-human until upstream resolves:** 1589 (#2791), 1710 (#1110), 2249 / 2251 / 2259 (#2802).
 If you want quick clean wins instead of strict oldest-first, the green-CI bucket is: **2134, 1745, 1770, 1722, 2116**.
