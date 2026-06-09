@@ -25,6 +25,9 @@ See _Open the draft PR_.
 PRs are opened as **draft** deliberately — they're for maintainer review, not an assertion of merge-readiness.
 - Work **oldest PR number first** unless told otherwise.
 - Don't guess on semantics: if a PR is gated on a maintainer **design decision** (not a code gap), revive it to green-CI and **flag the open question** rather than inventing behavior.
+- **Maintainability is part of the deliverable** (Javier's explicit ask): "preserve behavior" applies to design _decisions_ pending maintainer input — it is NOT a license to ship sloppy inherited code.
+While porting, check the rule against its mature reference implementation (see _Reference clones_) for missed edge cases (e.g. `AggregateError`'s 3rd-arg options, shorthand `{ cause }`, closure references, label shadowing — all real misses found in review of #2944–#2948), remove dead code, and keep helpers small and intelligible.
+Where you fix an inherited bug or consciously diverge from the reference, **disclose the delta in the PR body**.
 
 ## Setup (once per environment)
 
@@ -277,3 +280,13 @@ If you want quick clean wins instead of strict oldest-first, the green-CI bucket
 - `.github/workflows/ci.yaml` — exact gate commands.
 `packages/site/src/content/docs/project/development.mdx` — "Writing a New Rule".
 - Background analysis: the `flint-ai-review` report (direction, backlog buckets, coverage, worked playbooks).
+
+## Reference clones (consult while porting)
+
+Shallow clones of the upstream linters live next to this repo; flint's per-rule issues link the exact reference rules:
+
+- `/home/jcamino/typescript-eslint` — rules in `packages/eslint-plugin/src/rules/`, shared helpers in `packages/eslint-plugin/src/util/` (e.g. `needsToBeAwaited.ts`), tests in `packages/eslint-plugin/tests/rules/`.
+- `/home/jcamino/eslint` — rules in `lib/rules/`, tests in `tests/lib/rules/`.
+
+Use them to verify edge-case behavior before declaring a port done; the flint rule doesn't have to match feature-for-feature, but every divergence should be deliberate and disclosed.
+(`git -C <clone> pull` to refresh; they're `--depth 1`.)
