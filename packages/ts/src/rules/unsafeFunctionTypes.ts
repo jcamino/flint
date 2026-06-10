@@ -15,12 +15,10 @@ function isReferenceToGlobalFunction(
 	program: ts.Program,
 	typeChecker: Checker,
 ): boolean {
-	const symbol = typeChecker.getSymbolAtLocation(node);
-	if (!symbol) {
-		return true;
-	}
+	const declarations =
+		typeChecker.getSymbolAtLocation(node)?.getDeclarations() ?? [];
 
-	return !!symbol.getDeclarations()?.some((declaration) => {
+	return declarations.some((declaration) => {
 		const declarationFile = declaration.getSourceFile();
 		return (
 			declarationFile.hasNoDefaultLib ||
@@ -29,7 +27,7 @@ function isReferenceToGlobalFunction(
 	});
 }
 
-function isTypeOnlyHeritageClause(node: AST.HeritageClause): boolean {
+function isTypePositionHeritageClause(node: AST.HeritageClause): boolean {
 	return (
 		node.token === ts.SyntaxKind.ImplementsKeyword ||
 		node.parent.kind === ts.SyntaxKind.InterfaceDeclaration
@@ -78,7 +76,7 @@ export default ruleCreator.createRule(typescriptLanguage, {
 		return {
 			visitors: {
 				HeritageClause: (node, services) => {
-					if (isTypeOnlyHeritageClause(node)) {
+					if (isTypePositionHeritageClause(node)) {
 						for (const type of node.types) {
 							checkTypeName(type.expression, services);
 						}
