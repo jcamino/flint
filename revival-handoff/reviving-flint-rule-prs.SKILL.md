@@ -97,9 +97,12 @@ Use `import { type AST }` (not `import * as AST`).
 - **Every relative import specifier uses `.ts`, NEVER `.js`** — including the test file (`./ruleTester.ts`, `./<rule>.ts`).
 eslint `no-restricted-syntax` fails on `.js`.
 - **Constructor:** `typescriptLanguage.createRule({ … })` → `ruleCreator.createRule(typescriptLanguage, { … })`.
-- **Preset:** `about.preset: "x"` (string) → `about.presets: ["x"]` (array).
+- **Preset:** `about.preset: "x"` (string) → `about.presets: [...]` (array).
 Valid `ts` presets: `javascript`, `logical`, `logicalStrict`, `stylistic`, `stylisticStrict`.
-**Get the value from the rule's existing `comparisons/src/data.json` entry** (it's there as a backlog stub).
+**Get the value from the rule's existing `comparisons/src/data.json` entry** (it's there as a backlog stub), then apply the tier doctrine (per Javier — strict tiers are supersets of their base tier, never the reverse, and preset membership in `createPlugin` is literal with no expansion):
+  - data.json plain `"preset": "logical"` → `presets: ["logical", "logicalStrict"]` (same pattern for `stylistic`).
+  - data.json `"preset": "logical"` + `"strictness": "strict"` → `presets: ["logicalStrict"]` only (strict-tier-only rule).
+Javier says a lint rule enforces this; none found at repo HEAD (2026-06-09) — re-check `packages/plugin-flint/src/rules/` before assuming it'll catch mistakes for you.
 - **Type info & source file are no longer on `context`.** They arrive as the visitor's 2nd `services` arg:
   ```ts
   SomeNode: (node, { sourceFile, typeChecker }) => { … }
@@ -236,11 +239,11 @@ Then re-verify the gates yourself before committing.
 
 ## The backlog (oldest-first; ✅ = done)
 
-✅ **477** variableBlockScopeUsage · ts → draft PR [#2944](https://github.com/flint-fyi/flint/pull/2944)
-✅ **479** unusedLabels · ts → draft PR [#2945](https://github.com/flint-fyi/flint/pull/2945)
-✅ **1357** awaitThenable · ts → draft PR [#2946](https://github.com/flint-fyi/flint/pull/2946) (open design Qs — naming, `any`/`unknown` handling, aggregators, fixer — flagged in the PR body, behavior preserved)
-✅ **1363** caughtErrorCauses · ts → draft PR [#2948](https://github.com/flint-fyi/flint/pull/2948) (its #400 scope-manager blocker has LIFTED — #400 closed 2026-06-06; lenient behavior preserved, scope-based tightening offered as follow-up)
-✅ **1502** floatingPromises · ts → draft PR [#2949](https://github.com/flint-fyi/flint/pull/2949) (Kirk’s design feedback — drop `.catch()`/`void` silencing, sequence-expression gap, `getNumberIndexType` — flagged in the PR body, behavior preserved)
+✅ **477** variableBlockScopeUsage · ts → draft PR [#2944](https://github.com/flint-fyi/flint/pull/2944) — review-fixed 2026-06-09: positional scope semantics aligned with ESLint (closures, whole-`switch`, `using` exclusion)
+✅ **479** unusedLabels · ts → draft PR [#2945](https://github.com/flint-fyi/flint/pull/2945) — review-fixed 2026-06-09: innermost-first label resolution (shadowing regression), presets both tiers
+✅ **1357** awaitThenable · ts → draft PR [#2946](https://github.com/flint-fyi/flint/pull/2946) (open design Qs flagged in PR body; presets fixed to both tiers 2026-06-09)
+✅ **1363** caughtErrorCauses · ts → draft PR [#2948](https://github.com/flint-fyi/flint/pull/2948) (#400 blocker lifted; review-fixed 2026-06-09: AggregateError 3rd-arg options, shorthand/string `cause` keys, ESLint-style unknown-options bail-out)
+✅ **1502** floatingPromises · ts → draft PR [#2949](https://github.com/flint-fyi/flint/pull/2949) (Kirk’s design feedback flagged in PR body; presets fixed to both tiers 2026-06-09)
 ✅ **1504** functionDefinitionScopeConsistency · ts → draft PR [#2950](https://github.com/flint-fyi/flint/pull/2950) (#400 blocker lifted; hand-rolled scope walk preserved, ScopeManager rewrite offered as follow-up)
 
 | PR   | rule                           | plugin          | note                                                                         |
