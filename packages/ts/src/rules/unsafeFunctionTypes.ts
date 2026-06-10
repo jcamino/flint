@@ -1,50 +1,93 @@
-import type { TSESTree } from '@typescript-eslint/utils';
+import ts from "typescript";
 
-import { AST_NODE_TYPES } from '@typescript-eslint/utils';
+import {
+	getTSNodeRange,
+	typescriptLanguage,
+	type AST,
+	type Checker,
+	type TypeScriptFileServices,
+} from "@flint.fyi/typescript-language";
 
-import { createRule, isReferenceToGlobalFunction } from '../util';
+import { ruleCreator } from "./ruleCreator.ts";
 
-export default createRule({
-  name: 'no-unsafe-function-type',
-  meta: {
-    type: 'problem',
-    docs: {
-      description: 'Disallow using the unsafe built-in Function type',
-      recommended: 'recommended',
-    },
-    messages: {
-      bannedFunctionType: [
-        'The `Function` type accepts any function-like value.',
-        'Prefer explicitly defining any function parameters and return type.',
-      ].join('\n'),
-    },
-    schema: [],
-  },
-  defaultOptions: [],
-  create(context) {
-    function checkBannedTypes(node: TSESTree.Node): void {
-      if (
-        node.type === AST_NODE_TYPES.Identifier &&
-        node.name === 'Function' &&
-        isReferenceToGlobalFunction('Function', node, context.sourceCode)
-      ) {
-        context.report({
-          node,
-          messageId: 'bannedFunctionType',
-        });
-      }
-    }
+function isReferenceToGlobalFunction(
+	node: ts.Identifier,
+	program: ts.Program,
+	typeChecker: Checker,
+): boolean {
+	const symbol = typeChecker.getSymbolAtLocation(node);
+	if (!symbol) {
+		return true;
+	}
 
-    return {
-      TSClassImplements(node): void {
-        checkBannedTypes(node.expression);
-      },
-      TSInterfaceHeritage(node): void {
-        checkBannedTypes(node.expression);
-      },
-      TSTypeReference(node): void {
-        checkBannedTypes(node.typeName);
-      },
-    };
-  },
+	return !!symbol.getDeclarations()?.some((declaration) => {
+		const declarationFile = declaration.getSourceFile();
+		return (
+			declarationFile.hasNoDefaultLib ||
+			program.isSourceFileDefaultLibrary(declarationFile)
+		);
+	});
+}
+
+function isTypeOnlyHeritageClause(node: AST.HeritageClause): boolean {
+	return (
+		node.token === ts.SyntaxKind.ImplementsKeyword ||
+		node.parent.kind === ts.SyntaxKind.InterfaceDeclaration
+	);
+}
+
+export default ruleCreator.createRule(typescriptLanguage, {
+	about: {
+		description:
+			"Reports usages of the unsafe `Function` type, which accepts any arguments and returns `any`.",
+		id: "unsafeFunctionTypes",
+		presets: ["logical", "logicalStrict"],
+	},
+	messages: {
+		unsafeFunctionType: {
+			primary:
+				"The `Function` type accepts any function-like value, providing no type safety when calling it.",
+			secondary: [
+				"TypeScript's built-in `Function` type allows being called with any number of arguments and returns the unsafe `any` type.",
+				"`Function` also matches classes and plain objects that happen to possess all properties of the `Function` class, not just callable functions.",
+			],
+			suggestions: [
+				"Prefer an explicit function type that describes the parameters and return type, such as `() => void`.",
+			],
+		},
+	},
+	setup(context) {
+		function checkTypeName(
+			node: ts.Node,
+			{ program, sourceFile, typeChecker }: TypeScriptFileServices,
+		) {
+			if (
+				!ts.isIdentifier(node) ||
+				node.text !== "Function" ||
+				!isReferenceToGlobalFunction(node, program, typeChecker)
+			) {
+				return;
+			}
+
+			context.report({
+				message: "unsafeFunctionType",
+				range: getTSNodeRange(node, sourceFile),
+			});
+		}
+
+		return {
+			visitors: {
+				HeritageClause: (node, services) => {
+					if (isTypeOnlyHeritageClause(node)) {
+						for (const type of node.types) {
+							checkTypeName(type.expression, services);
+						}
+					}
+				},
+				TypeReference: (node, services) => {
+					checkTypeName(node.typeName, services);
+				},
+			},
+		};
+	},
 });
